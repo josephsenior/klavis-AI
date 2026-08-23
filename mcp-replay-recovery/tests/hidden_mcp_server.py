@@ -56,8 +56,7 @@ class ToolState:
             else:
                 raise ValueError(f"unknown v2 tool: {name}")
             self.results[key] = result
-            logical_id = ":".join(key.split(":")[:2])
-            self.effect_counts[logical_id] += 1
+            self.effect_counts[key] += 1
             self.commits.append({"key": key, "name": name, "arguments": arguments})
             return result
 

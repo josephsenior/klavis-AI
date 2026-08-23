@@ -3,6 +3,7 @@
 set -eu
 
 cp /solution/journal.py /app/gateway/journal.py
+cp /solution/models.py /app/gateway/models.py
 cp /solution/schemas.py /app/gateway/schemas.py
 cp /solution/recovery.py /app/gateway/recovery.py
-
+cp /solution/cli.py /app/cli.py

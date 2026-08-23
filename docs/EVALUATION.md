@@ -48,3 +48,29 @@ After removing a verifier-side file-ownership artifact and applying the current 
 | Harbor Nop | 1 trial, 0 exceptions, reward 0.000 |
 
 The Nop result therefore remains a semantic failure after the pre-seeded journal is made writable by the unprivileged candidate process.
+
+### First Codex pilot
+
+Configuration:
+
+```bash
+uvx harbor run -p mcp-replay-recovery --agent codex --model openai/gpt-5.6-sol --env docker --yes --ae CODEX_FORCE_AUTH_JSON=1 --ak reasoning_effort=xhigh
+```
+
+| Trials | Exceptions | Reward | Runtime |
+| ---: | ---: | ---: | ---: |
+| 1 | 0 | 1.000 | 17m 14s |
+
+Codex identified the four direct defect classes and produced a repair close to the Oracle. This established that the 15-test checkpoint was under-calibrated for the required frontier configuration.
+
+### Multiplexed-journal checkpoint
+
+Two professional identity cases were added: multiple sessions with repeated operation IDs in one journal, and identity components whose naive delimiter concatenation collides. New lifecycle events are session-qualified while legacy records remain valid when unambiguous.
+
+| Check | Result |
+| --- | --- |
+| Local reference repair | 17/17 pass |
+| Local untouched baseline | 0/17 pass |
+| Official static checks | 22/22 pass |
+| Harbor Oracle | 1 trial, 0 exceptions, reward 1.000 |
+| Harbor Nop | 1 trial, 0 exceptions, reward 0.000 |

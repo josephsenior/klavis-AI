@@ -12,17 +12,18 @@ Frontier coding agents are strong at localized bug fixing but still struggle to 
 
 | Check | Result |
 | --- | --- |
-| Deterministic verifier scenarios | 15 implemented, including 5 generated seeds |
-| Nop/local baseline | 0/15 tests pass |
-| Oracle/local reference repair | 15/15 tests pass |
+| Deterministic verifier scenarios | 17 implemented, including 5 generated seeds |
+| Nop/local baseline | 0/17 tests pass |
+| Oracle/local reference repair | 17/17 tests pass |
 | Separate verifier structure | Implemented and container-tested |
 | Docker image build | Agent and verifier images build successfully |
 | Harbor Oracle/Nop runs | Oracle=1.000, Nop=0.000, zero exceptions |
 | Official static checks | 22/22 pass |
-| Codex/Claude calibration | Not started |
+| Codex calibration | First pilot passed; strengthened rerun pending |
+| Claude calibration | Not started |
 | Adversarial `/cheat` trials | Not started |
 
-The current verifier covers uncertain remote commits, pre-receipt crashes, repeated uncertain restarts, crashes after durable local results, mixed v1/v2 replay, dependency ordering independent of journal order, multiple sessions with colliding operation IDs, torn journal tails, non-durable un-terminated records, invalid dependency graphs, and crash/restart convergence.
+The current verifier covers uncertain remote commits, pre-receipt crashes, repeated uncertain restarts, crashes after durable local results, mixed v1/v2 replay, dependency ordering independent of journal order, multiplexed sessions with reused operation IDs, delimiter-safe idempotency identity, torn journal tails, non-durable un-terminated records, invalid dependency graphs, and crash/restart convergence.
 
 ## Repository layout
 
