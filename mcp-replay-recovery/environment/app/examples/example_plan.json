@@ -1,0 +1,10 @@
+[
+  {
+    "session_id": "demo",
+    "operation_id": "allocate",
+    "schema_version": 2,
+    "name": "allocate_workers",
+    "arguments": {"pool_id": "gpu", "quantity": 1, "priority": "normal"}
+  }
+]
+
