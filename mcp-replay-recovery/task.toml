@@ -17,9 +17,9 @@ subcategory = "Distributed Systems"
 tags = ["mcp", "crash-recovery", "idempotency", "schema-evolution", "event-journal"]
 expert_time_estimate_hours = 8
 relevant_experience = "Built and evaluated long-horizon coding-agent infrastructure with durable execution, replay, verification, and failure recovery concerns."
-difficulty_explanation = "The repair requires preserving collision-free composite operation identity across uncertain remote outcomes while jointly handling multiplexed sessions, legacy event records, schema migration, session-scoped dependencies, durable journal prefixes, and restart convergence. Local fixes to any one concern tend to violate another."
-solution_explanation = "The reference repair keys replay state by the full session/operation pair, emits session-qualified lifecycle records while inferring unambiguous legacy records, uses an injective stable idempotency key, normalizes persisted calls at the wire boundary, rebuilds state from the durable journal prefix, and replays only dependency-ready operations."
-verification_explanation = "A separate verifier receives only the small executable gateway source, runs it unprivileged against a verifier-owned stateful tool server, injects deterministic crashes, and checks external effects, completion, scoped ordering, multiplexed-session isolation, collision-free identity, migration, and convergence."
+difficulty_explanation = "The repair requires preserving collision-free composite operation identity and durable result data across uncertain remote outcomes while jointly handling multiplexed sessions, result-bound arguments, legacy event records, schema migration, session-scoped dependencies, torn journal tails, and restart convergence. Local fixes to any one concern tend to violate another."
+solution_explanation = "The reference repair keys replay state by the full session/operation pair, retains durable results for recursive dependency bindings, emits session-qualified lifecycle records while inferring unambiguous legacy records, uses an injective stable idempotency key, normalizes persisted calls at the wire boundary, and replays only dependency-ready operations."
+verification_explanation = "A separate verifier receives only the small executable gateway source, runs it unprivileged against a verifier-owned stateful tool server, injects deterministic crashes, and checks external effects, completion, scoped ordering, multiplexed-session isolation, collision-free identity, durable result binding, migration, and convergence."
 
 [verifier]
 timeout_sec = 300.0

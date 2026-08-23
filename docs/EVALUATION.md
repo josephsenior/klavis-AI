@@ -74,3 +74,21 @@ Two professional identity cases were added: multiple sessions with repeated oper
 | Official static checks | 22/22 pass |
 | Harbor Oracle | 1 trial, 0 exceptions, reward 1.000 |
 | Harbor Nop | 1 trial, 0 exceptions, reward 0.000 |
+
+### Second Codex pilot — invalidated
+
+The multiplexed-journal pilot completed with 0 exceptions and an apparent reward of 0.000. Inspection showed 16/17 tests passed; the only failure required all independent allocations across sessions to occur before any configuration. That global layer ordering was not required by the task or recovery protocol. The candidate's interleaving respected every declared dependency, so the verifier assertion was corrected and this run is excluded from calibration evidence.
+
+The run also encountered an agent setup timeout on its first attempt and an editor/model-manager delay on the valid attempt. Those infrastructure events did not determine the hidden-test failure, but are recorded for reproducibility.
+
+### Durable result-binding checkpoint
+
+Operations may now recursively bind arguments to fields in durable results of same-session transitive dependencies. The verifier exercises opaque server-generated identifiers, multiplexed sessions with reused operation IDs, v1-to-v2 migration, and a crash immediately after the producer result becomes durable.
+
+| Check | Result |
+| --- | --- |
+| Local reference repair | 19/19 pass |
+| Local untouched baseline | 0/19 pass |
+| Official static checks | 22/22 pass |
+| Harbor Oracle | 1 trial, 0 exceptions, reward 1.000 |
+| Harbor Nop | 1 trial, 0 exceptions, reward 0.000 |

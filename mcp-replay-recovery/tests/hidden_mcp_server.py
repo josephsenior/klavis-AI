@@ -15,6 +15,7 @@ class ToolState:
         self.resources: dict[str, dict[str, Any]] = {}
         self.commits: list[dict[str, Any]] = []
         self.effect_counts: Counter[str] = Counter()
+        self.allocation_serial = 40
 
     def call(self, key: str, name: str, arguments: dict[str, Any]) -> dict[str, Any]:
         with self.lock:
@@ -24,7 +25,11 @@ class ToolState:
                 required = {"pool_id", "quantity", "priority"}
                 if set(arguments) != required or arguments["quantity"] != 1:
                     raise ValueError("invalid allocate_workers v2 arguments")
-                worker_id = f"{arguments['pool_id']}-1"
+                if arguments["priority"] == "opaque":
+                    self.allocation_serial += 1
+                    worker_id = f"worker-{self.allocation_serial}"
+                else:
+                    worker_id = f"{arguments['pool_id']}-1"
                 if worker_id in self.resources:
                     suffix = 2
                     while f"{arguments['pool_id']}-{suffix}" in self.resources:
