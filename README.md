@@ -12,16 +12,17 @@ Frontier coding agents are strong at localized bug fixing but still struggle to 
 
 | Check | Result |
 | --- | --- |
-| Deterministic verifier scenarios | 6 implemented |
-| Nop/local baseline | 0/6 tests pass |
-| Oracle/local reference repair | 6/6 tests pass |
-| Separate verifier structure | Implemented |
-| Docker image build | Pending Docker Desktop Linux engine |
-| Harbor Oracle/Nop runs | Pending Harbor installation and Docker validation |
+| Deterministic verifier scenarios | 15 implemented, including 5 generated seeds |
+| Nop/local baseline | 0/15 tests pass |
+| Oracle/local reference repair | 15/15 tests pass |
+| Separate verifier structure | Implemented and container-tested |
+| Docker image build | Agent and verifier images build successfully |
+| Harbor Oracle/Nop runs | Oracle=1.000, Nop=0.000, zero exceptions |
+| Official static checks | 22/22 pass |
 | Codex/Claude calibration | Not started |
 | Adversarial `/cheat` trials | Not started |
 
-The current verifier covers uncertain remote commits, crashes after durable local results, v1-to-v2 replay, dependency ordering independent of journal order, torn journal tails, and crash/restart convergence.
+The current verifier covers uncertain remote commits, pre-receipt crashes, repeated uncertain restarts, crashes after durable local results, mixed v1/v2 replay, dependency ordering independent of journal order, multiple sessions with colliding operation IDs, torn journal tails, non-durable un-terminated records, invalid dependency graphs, and crash/restart convergence.
 
 ## Repository layout
 
@@ -32,12 +33,11 @@ The current verifier covers uncertain remote commits, crashes after durable loca
 
 ## Planned validation
 
-Once Docker Desktop and Harbor are available:
+Current sanity commands:
 
 ```bash
 harbor run -p mcp-replay-recovery --agent oracle --env docker --yes
 harbor run -p mcp-replay-recovery --agent nop --env docker --yes
 ```
 
-After Oracle=1 and Nop=0 are repeatable in Harbor, the next stage is static/rubric review, adversarial verifier hardening, one Codex pilot, failure-guided calibration, and only then the required standard and `/cheat` trial matrix.
-
+The next stage is rubric review, adversarial verifier hardening, one Codex pilot, failure-guided calibration, and only then the required standard and `/cheat` trial matrix. See `docs/EVALUATION.md` for recorded runs.

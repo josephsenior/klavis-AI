@@ -12,7 +12,7 @@ authors = [{ name = "Youssef Mejdi", email = "129755488+josephsenior@users.norep
 author_name = "Youssef Mejdi"
 author_email = "129755488+josephsenior@users.noreply.github.com"
 author_organization = "Independent"
-category = "Software Engineering"
+category = "Software"
 subcategory = "Distributed Systems"
 tags = ["mcp", "crash-recovery", "idempotency", "schema-evolution", "event-journal"]
 expert_time_estimate_hours = 8

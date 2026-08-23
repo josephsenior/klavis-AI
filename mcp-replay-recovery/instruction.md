@@ -15,3 +15,4 @@ The repaired gateway must meet all of these observable requirements:
 
 Keep the documented journal record shape and public commands compatible. Do not replace the gateway with scenario-specific output or modify files outside `/app`.
 
+You have 7200 seconds to complete this task. Do not cheat by using online solutions or hints specific to this task.

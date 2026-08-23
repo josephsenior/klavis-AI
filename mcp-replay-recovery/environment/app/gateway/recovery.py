@@ -38,6 +38,7 @@ def recover(journal: Journal, client: ToolClient) -> None:
         idempotency_key = f"{operation.logical_id}:{attempt}"
         journal.append({"event": "DISPATCHED", "operation_id": operation.operation_id})
         name, arguments = current_wire_call(operation)
+        hit("before_remote_call")
         result = client.call(name, arguments, idempotency_key)
         hit("after_remote_commit")
         journal.append(

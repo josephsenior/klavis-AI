@@ -5,4 +5,5 @@ __pycache__/
 .oracle-check/
 .oracle-pytest*/
 harbor-runs/
-
+jobs/
+.tb3-static/

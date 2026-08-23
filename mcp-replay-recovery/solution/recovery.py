@@ -56,6 +56,7 @@ def recover(journal: Journal, client: ToolClient) -> None:
             idempotency_key = operation.logical_id
             journal.append({"event": "DISPATCHED", "operation_id": operation.operation_id})
             name, arguments = current_wire_call(operation)
+            hit("before_remote_call")
             result = client.call(name, arguments, idempotency_key)
             hit("after_remote_commit")
             journal.append(
@@ -65,4 +66,3 @@ def recover(journal: Journal, client: ToolClient) -> None:
             journal.append({"event": "ACKED", "operation_id": operation.operation_id})
             status[operation.operation_id] = TERMINAL
             del pending[operation.operation_id]
-

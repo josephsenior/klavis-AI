@@ -1,0 +1,5 @@
+# Exclude local development state from the candidate image.
+__pycache__/
+**/__pycache__/
+*.py[cod]
+.pytest_cache/
