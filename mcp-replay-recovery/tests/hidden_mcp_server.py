@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import threading
+import time
 from collections import Counter
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any
@@ -16,8 +17,13 @@ class ToolState:
         self.commits: list[dict[str, Any]] = []
         self.effect_counts: Counter[str] = Counter()
         self.allocation_serial = 40
+        self.call_delay = 0.0
+        self.call_started = threading.Event()
 
     def call(self, key: str, name: str, arguments: dict[str, Any]) -> dict[str, Any]:
+        self.call_started.set()
+        if self.call_delay:
+            time.sleep(self.call_delay)
         with self.lock:
             if key in self.results:
                 return self.results[key]

@@ -102,3 +102,23 @@ The valid 19-test checkpoint was run with the required Codex model and reasoning
 | 1 | 0 | 1.000 | 19m 30s |
 
 Codex implemented composite identity, durable result reconstruction, recursive path binding, transitive dependency validation, legacy compatibility, schema migration, and journal-tail repair. This checkpoint remains under-calibrated for final submission despite being substantially stronger and more realistic than the initial version.
+
+### Concurrent scale checkpoint
+
+The protocol now requires one process-level recovery owner per journal, automatic lease release on process death, stack-safe linear dependency validation for a documented 4,096-operation chain, and truncation of a torn tail before any new lifecycle append. The environment image also bakes the system prerequisites Harbor's Codex adapter otherwise installs at trial time.
+
+| Check | Result |
+| --- | --- |
+| Local reference repair | 22/22 pass |
+| Local untouched baseline | 1/22 pass; overall reward 0 |
+| Official static checks | 22/22 pass |
+| Harbor Oracle | 1 trial, 0 exceptions, reward 1.000 |
+| Harbor Nop | 1 trial, 0 exceptions, reward 0.000 |
+
+The untouched baseline's one passing case is the already-complete scale journal: it performs no graph validation and therefore returns without work. It still fails the benchmark as a whole.
+
+### Concurrent scale Codex pilot — invalidated
+
+Two attempts with 3× and 6× setup multipliers completed zero trials because Harbor stalled while installing missing OS packages. The prerequisites were then added to the environment image, after which a valid Codex trial completed with 0 exceptions and an apparent reward of 0.000 in 21m 50s.
+
+Inspection showed 20/21 tests passed, including the overlapping-recoverer case. The only failure came from a synthetic scale fixture that recorded `PLANNED → RESULT_DURABLE → ACKED` while omitting the `DISPATCHED` event a real completed operation would contain. Codex reasonably rejected that lifecycle as corruption. The fixture now records the valid lifecycle, the apparent failure is excluded from calibration evidence, and the corrected 22-test checkpoint still requires a valid frontier rerun.
