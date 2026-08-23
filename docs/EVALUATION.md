@@ -92,3 +92,13 @@ Operations may now recursively bind arguments to fields in durable results of sa
 | Official static checks | 22/22 pass |
 | Harbor Oracle | 1 trial, 0 exceptions, reward 1.000 |
 | Harbor Nop | 1 trial, 0 exceptions, reward 0.000 |
+
+### Result-binding Codex pilot
+
+The valid 19-test checkpoint was run with the required Codex model and reasoning configuration plus a 3× agent-setup timeout multiplier to tolerate dependency installation. The task execution budget was unchanged.
+
+| Trials | Exceptions | Reward | Runtime |
+| ---: | ---: | ---: | ---: |
+| 1 | 0 | 1.000 | 19m 30s |
+
+Codex implemented composite identity, durable result reconstruction, recursive path binding, transitive dependency validation, legacy compatibility, schema migration, and journal-tail repair. This checkpoint remains under-calibrated for final submission despite being substantially stronger and more realistic than the initial version.
