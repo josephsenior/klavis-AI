@@ -149,4 +149,6 @@ New dispatch records persist the exact idempotency key sent remotely. Once durab
 | Harbor Oracle | 1 trial, 0 exceptions, reward 1.000 |
 | Harbor Nop | 1 trial, 0 exceptions, reward 0.000 |
 
-The first Codex/xhigh attempt at this checkpoint is invalid calibration evidence. The response stream disconnected shortly after initial file edits, all reconnects then failed DNS resolution for `chatgpt.com`, and Harbor eventually reported `AgentTimeoutError` at the unchanged 7,200-second task limit. The incomplete artifact passed 3/24 tests, but that result is attributed to the recorded network outage rather than model capability. A clean rerun remains required.
+The first Codex/xhigh attempt at this checkpoint is invalid calibration evidence. The response stream disconnected shortly after initial file edits, all reconnects then failed DNS resolution for `chatgpt.com`, and Harbor eventually reported `AgentTimeoutError` at the unchanged 7,200-second task limit. The incomplete artifact passed 3/24 tests, but that result is attributed to the recorded network outage rather than model capability.
+
+After Docker DNS resolution was independently verified, a clean replacement trial completed with 0 exceptions and reward 1.000 in 24m 56s. Codex correctly treated the persisted historical dispatch key as authoritative while also satisfying the other 23 recovery cases. The 24-test checkpoint therefore remains under-calibrated for final submission.

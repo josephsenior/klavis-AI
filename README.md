@@ -19,7 +19,7 @@ Frontier coding agents are strong at localized bug fixing but still struggle to 
 | Docker image build | Agent and verifier images build successfully |
 | Harbor Oracle/Nop runs | Oracle=1.000, Nop=0.000, zero exceptions |
 | Official static checks | 22/22 pass |
-| Codex calibration | Three valid pilots passed; 24-test key-migration rerun pending after an invalid network timeout |
+| Codex calibration | Four valid pilots passed; key-migration checkpoint remains under-calibrated |
 | Claude calibration | Not started |
 | Adversarial `/cheat` trials | Not started |
 
