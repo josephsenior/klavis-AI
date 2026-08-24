@@ -166,3 +166,18 @@ The verifier now distinguishes the tool server's short-lived request-deduplicati
 | Harbor Nop | 1 trial, 0 exceptions, reward 0.000 |
 
 A clean Codex/xhigh pilot passed all 25 tests with 0 exceptions and reward 1.000 in 28m 13s. Trajectory inspection showed that Codex implemented lookup-before-retry directly and used unique transport identities for read-only lookups to avoid stale negative-response caching. This fifth valid successful pilot confirms that the single-state remote-reconciliation checkpoint is also under-calibrated for final submission.
+
+### Checkpoint/compaction checkpoint
+
+The task now has a documented `compact` command and checksummed normalized checkpoint format. Compaction atomically publishes the checkpoint before truncating the exact journal prefix it covers. Recovery must merge compacted state with only the uncovered suffix, including when a crash leaves both the active checkpoint and its original covered prefix. Terminal results and uncertain dispatch keys must survive compaction so later result bindings and remote reconciliation remain correct.
+
+| Check | Result |
+| --- | --- |
+| Local reference repair | 29/29 pass |
+| Official static checks | 22/22 pass |
+| Harbor Oracle | 1 trial, 0 exceptions, reward 1.000 |
+| Harbor Nop | 1 trial, 0 exceptions, reward 0.000 |
+
+The first Codex/xhigh attempt reported reward 0.000 with zero exceptions in 23m 35s, but its only two failures were verifier defects. One fixture required an undisclosed internal fault-hook name instead of constructing the documented post-publication crash state externally; the other required an exact error-message substring even though the candidate correctly rejected the checksum-invalid active checkpoint. That run is invalidated and excluded from calibration evidence. The verifier now restores the covered prefix directly after successful compaction and checks only nonzero rejection of corrupt active checkpoints.
+
+A clean replacement trial against the corrected 29-test verifier passed with 0 exceptions and reward 1.000 in 28m 18s. The artifact implemented checksummed normalized state, exact covered-prefix hashing, checkpoint-plus-suffix recovery, post-compaction planning, uncertain-dispatch reconciliation, and active-checkpoint integrity. This sixth valid successful pilot shows that checkpoint/compaction substantially broadens the architecture but remains under-calibrated for the required Codex configuration.

@@ -12,18 +12,18 @@ Frontier coding agents are strong at localized bug fixing but still struggle to 
 
 | Check | Result |
 | --- | --- |
-| Deterministic verifier scenarios | 25 implemented, including 5 generated seeds |
-| Nop/local baseline | Overall reward 0; remote-reconciliation case fails |
-| Oracle/local reference repair | 25/25 tests pass |
+| Deterministic verifier scenarios | 29 implemented, including 5 generated seeds |
+| Nop/local baseline | Overall reward 0; checkpoint/compaction cases fail |
+| Oracle/local reference repair | 29/29 tests pass |
 | Separate verifier structure | Implemented and container-tested |
 | Docker image build | Agent and verifier images build successfully |
 | Harbor Oracle/Nop runs | Oracle=1.000, Nop=0.000, zero exceptions |
 | Official static checks | 22/22 pass |
-| Codex calibration | Five valid pilots passed; remote-reconciliation checkpoint remains under-calibrated |
+| Codex calibration | Six valid pilots passed; checkpoint/compaction version remains under-calibrated |
 | Claude calibration | Not started |
 | Adversarial `/cheat` trials | Not started |
 
-The current verifier covers uncertain remote commits, pre-receipt crashes, crashes after durable local results, durable remote-outcome reconciliation after request-dedupe expiry, recursive result-bound arguments, mixed v1/v2 replay, historical dispatch-key reuse across key-encoding migration, dependency ordering independent of journal order, multiplexed sessions with reused operation IDs, delimiter-safe idempotency identity, torn-tail repair before plan continuation, concurrent recovery ownership and owner-crash failover, a 4,096-operation dependency chain, invalid dependency graphs, and crash/restart convergence.
+The current verifier covers uncertain remote commits, pre-receipt crashes, crashes after durable local results, durable remote-outcome reconciliation after request-dedupe expiry, atomic checkpoint publication and compaction, covered-prefix suppression after a compaction crash, checkpoint integrity, post-compaction result binding and uncertain dispatch recovery, mixed v1/v2 replay, historical dispatch-key reuse across key-encoding migration, dependency ordering independent of journal order, multiplexed sessions, collision-free identity, torn-tail repair, concurrent ownership and owner-crash failover, a 4,096-operation dependency chain, invalid dependency graphs, and crash/restart convergence.
 
 ## Repository layout
 
