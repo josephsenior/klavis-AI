@@ -39,11 +39,13 @@ def reconstruct(
     dict[Identity, str],
     dict[Identity, int],
     dict[Identity, dict[str, Any]],
+    dict[Identity, str],
 ]:
     operations: OrderedDict[Identity, Operation] = OrderedDict()
     status: dict[Identity, str] = {}
     attempts: dict[Identity, int] = {}
     results: dict[Identity, dict[str, Any]] = {}
+    dispatch_keys: dict[Identity, str] = {}
     for record in records:
         if record["event"] == "PLANNED":
             operation = Operation.from_dict(record["operation"])
@@ -63,12 +65,20 @@ def reconstruct(
             status[key] = record["event"]
             if record["event"] == "DISPATCHED":
                 attempts[key] = attempts.get(key, 0) + 1
+                persisted_key = record.get("idempotency_key")
+                if persisted_key is not None:
+                    if not isinstance(persisted_key, str) or not persisted_key:
+                        raise ValueError(f"invalid idempotency key for operation: {key}")
+                    previous_key = dispatch_keys.get(key)
+                    if previous_key is not None and previous_key != persisted_key:
+                        raise ValueError(f"idempotency key changed for operation: {key}")
+                    dispatch_keys[key] = persisted_key
             elif record["event"] == "RESULT_DURABLE":
                 result = record.get("result")
                 if not isinstance(result, dict):
                     raise ValueError(f"durable result is missing for operation: {key}")
                 results[key] = result
-    return list(operations.values()), status, attempts, results
+    return list(operations.values()), status, attempts, results, dispatch_keys
 
 
 def _event(event: str, operation: Operation, **extra: Any) -> dict[str, Any]:
@@ -194,7 +204,7 @@ def _resolve(value: Any, session_id: str, results: dict[Identity, dict[str, Any]
 
 
 def _recover_locked(journal: Journal, client: ToolClient) -> None:
-    operations, status, _attempts, results = reconstruct(
+    operations, status, _attempts, results, dispatch_keys = reconstruct(
         journal.load(repair_torn_tail=True)
     )
     by_key, ordered = _validated_order(operations)
@@ -213,7 +223,11 @@ def _recover_locked(journal: Journal, client: ToolClient) -> None:
             for dependency in operation.depends_on
         ):
             raise ValueError("operation has an incomplete prerequisite")
-        journal.append(_event("DISPATCHED", operation))
+        dispatch_key = dispatch_keys.get(key, operation.logical_id)
+        journal.append(
+            _event("DISPATCHED", operation, idempotency_key=dispatch_key)
+        )
+        dispatch_keys[key] = dispatch_key
         resolved = Operation(
             session_id=operation.session_id,
             operation_id=operation.operation_id,
@@ -224,7 +238,7 @@ def _recover_locked(journal: Journal, client: ToolClient) -> None:
         )
         name, arguments = current_wire_call(resolved)
         hit("before_remote_call")
-        result = client.call(name, arguments, operation.logical_id)
+        result = client.call(name, arguments, dispatch_key)
         hit("after_remote_commit")
         journal.append(_event("RESULT_DURABLE", operation, result=result))
         results[key] = result

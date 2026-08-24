@@ -12,18 +12,18 @@ Frontier coding agents are strong at localized bug fixing but still struggle to 
 
 | Check | Result |
 | --- | --- |
-| Deterministic verifier scenarios | 22 implemented, including 5 generated seeds |
-| Nop/local baseline | 1/22 tests pass; overall reward 0 |
-| Oracle/local reference repair | 22/22 tests pass |
+| Deterministic verifier scenarios | 24 implemented, including 5 generated seeds |
+| Nop/local baseline | Overall reward 0; new continuation and key-migration cases fail |
+| Oracle/local reference repair | 24/24 tests pass |
 | Separate verifier structure | Implemented and container-tested |
 | Docker image build | Agent and verifier images build successfully |
 | Harbor Oracle/Nop runs | Oracle=1.000, Nop=0.000, zero exceptions |
 | Official static checks | 22/22 pass |
-| Codex calibration | Two valid pilots passed; two apparent failures invalidated; corrected rerun pending |
+| Codex calibration | Three valid pilots passed; 24-test key-migration rerun pending after an invalid network timeout |
 | Claude calibration | Not started |
 | Adversarial `/cheat` trials | Not started |
 
-The current verifier covers uncertain remote commits, pre-receipt crashes, repeated uncertain restarts, crashes after durable local results, recursive result-bound arguments, mixed v1/v2 replay, dependency ordering independent of journal order, multiplexed sessions with reused operation IDs, delimiter-safe idempotency identity, torn-tail repair before later appends, concurrent recovery ownership and owner-crash failover, a 4,096-operation dependency chain, invalid dependency graphs, and crash/restart convergence.
+The current verifier covers uncertain remote commits, pre-receipt crashes, repeated uncertain restarts, crashes after durable local results, recursive result-bound arguments, mixed v1/v2 replay, historical dispatch-key reuse across key-encoding migration, dependency ordering independent of journal order, multiplexed sessions with reused operation IDs, delimiter-safe idempotency identity, torn-tail repair before plan continuation, concurrent recovery ownership and owner-crash failover, a 4,096-operation dependency chain, invalid dependency graphs, and crash/restart convergence.
 
 ## Repository layout
 

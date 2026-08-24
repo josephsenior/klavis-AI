@@ -122,3 +122,31 @@ The untouched baseline's one passing case is the already-complete scale journal:
 Two attempts with 3× and 6× setup multipliers completed zero trials because Harbor stalled while installing missing OS packages. The prerequisites were then added to the environment image, after which a valid Codex trial completed with 0 exceptions and an apparent reward of 0.000 in 21m 50s.
 
 Inspection showed 20/21 tests passed, including the overlapping-recoverer case. The only failure came from a synthetic scale fixture that recorded `PLANNED → RESULT_DURABLE → ACKED` while omitting the `DISPATCHED` event a real completed operation would contain. Codex reasonably rejected that lifecycle as corruption. The fixture now records the valid lifecycle, the apparent failure is excluded from calibration evidence, and the corrected 22-test checkpoint still requires a valid frontier rerun.
+
+### Plan-continuation checkpoint
+
+`execute` now repairs an existing torn tail before writing any new `PLANNED` record and holds one reentrant ownership interval through planning and recovery. The hidden continuation case combines an uncertain opaque allocation result, a torn write, a newly appended dependent operation, and result binding after replay.
+
+| Check | Result |
+| --- | --- |
+| Local reference repair | 23/23 pass |
+| New case against untouched baseline | fail |
+| Official static checks | 22/22 pass |
+| Harbor Oracle | 1 trial, 0 exceptions, reward 1.000 |
+| Harbor Nop | 1 trial, 0 exceptions, reward 0.000 |
+
+A valid Codex/xhigh pilot passed all 23 tests with 0 exceptions and reward 1.000 in 22m 26s. This demonstrated that atomic plan continuation alone did not calibrate the task above the required frontier configuration.
+
+### Dispatch-key migration checkpoint
+
+New dispatch records persist the exact idempotency key sent remotely. Once durable, that key is authoritative across retries even when a newer gateway version would derive a different encoding. The hidden case simulates a v1 call already committed under a historical key, then requires v2 replay to recover its opaque result and configure the dependent resource without another allocation.
+
+| Check | Result |
+| --- | --- |
+| Local reference repair | 24/24 pass |
+| New case against untouched baseline | fail |
+| Official static checks | 22/22 pass |
+| Harbor Oracle | 1 trial, 0 exceptions, reward 1.000 |
+| Harbor Nop | 1 trial, 0 exceptions, reward 0.000 |
+
+The first Codex/xhigh attempt at this checkpoint is invalid calibration evidence. The response stream disconnected shortly after initial file edits, all reconnects then failed DNS resolution for `chatgpt.com`, and Harbor eventually reported `AgentTimeoutError` at the unchanged 7,200-second task limit. The incomplete artifact passed 3/24 tests, but that result is attributed to the recorded network outage rather than model capability. A clean rerun remains required.

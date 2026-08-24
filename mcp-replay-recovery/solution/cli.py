@@ -34,11 +34,16 @@ def main() -> None:
     args = parser.parse_args()
 
     journal = Journal(args.journal)
+    client = ToolClient(args.endpoint)
     if args.command == "execute":
         if not args.plan:
             parser.error("execute requires --plan")
-        plan_operations(journal, Path(args.plan))
-    recover(journal, ToolClient(args.endpoint))
+        with journal.recovery_lock():
+            journal.load(repair_torn_tail=True)
+            plan_operations(journal, Path(args.plan))
+            recover(journal, client)
+    else:
+        recover(journal, client)
 
 
 if __name__ == "__main__":
