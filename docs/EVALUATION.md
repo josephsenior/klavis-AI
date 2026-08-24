@@ -152,3 +152,17 @@ New dispatch records persist the exact idempotency key sent remotely. Once durab
 The first Codex/xhigh attempt at this checkpoint is invalid calibration evidence. The response stream disconnected shortly after initial file edits, all reconnects then failed DNS resolution for `chatgpt.com`, and Harbor eventually reported `AgentTimeoutError` at the unchanged 7,200-second task limit. The incomplete artifact passed 3/24 tests, but that result is attributed to the recorded network outage rather than model capability.
 
 After Docker DNS resolution was independently verified, a clean replacement trial completed with 0 exceptions and reward 1.000 in 24m 56s. Codex correctly treated the persisted historical dispatch key as authoritative while also satisfying the other 23 recovery cases. The 24-test checkpoint therefore remains under-calibrated for final submission.
+
+### Remote-reconciliation checkpoint
+
+The verifier now distinguishes the tool server's short-lived request-deduplication cache from a durable outcome ledger. The hidden case simulates a side effect committed under a historical dispatch key, expires only its dedupe entry, and then requires recovery to reconcile the authoritative remote result before retry. The recovered opaque worker ID must also flow into a dependent configuration operation.
+
+| Check | Result |
+| --- | --- |
+| Local reference repair | 25/25 pass |
+| New case against untouched baseline | fail |
+| Official static checks | 22/22 pass |
+| Harbor Oracle | 1 trial, 0 exceptions, reward 1.000 |
+| Harbor Nop | 1 trial, 0 exceptions, reward 0.000 |
+
+A clean Codex/xhigh pilot passed all 25 tests with 0 exceptions and reward 1.000 in 28m 13s. Trajectory inspection showed that Codex implemented lookup-before-retry directly and used unique transport identities for read-only lookups to avoid stale negative-response caching. This fifth valid successful pilot confirms that the single-state remote-reconciliation checkpoint is also under-calibrated for final submission.

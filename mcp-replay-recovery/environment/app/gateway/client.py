@@ -11,7 +11,9 @@ class ToolClient:
     def __init__(self, endpoint: str):
         self.endpoint = endpoint.rstrip("/")
 
-    def call(self, name: str, arguments: dict[str, Any], idempotency_key: str) -> dict[str, Any]:
+    def _request(
+        self, name: str, arguments: dict[str, Any], idempotency_key: str
+    ) -> dict[str, Any]:
         payload = json.dumps(
             {
                 "jsonrpc": "2.0",
@@ -52,3 +54,18 @@ class ToolClient:
             detail = content[0].get("text", "tool call failed") if content else "tool call failed"
             raise RuntimeError(detail)
         return dict(result["structuredContent"])
+
+    def call(self, name: str, arguments: dict[str, Any], idempotency_key: str) -> dict[str, Any]:
+        return self._request(name, arguments, idempotency_key)
+
+    def lookup(self, idempotency_key: str) -> dict[str, Any] | None:
+        outcome = self._request(
+            "lookup_call",
+            {"idempotency_key": idempotency_key},
+            f"lookup:{idempotency_key}",
+        )
+        if outcome.get("found") is False:
+            return None
+        if outcome.get("found") is not True or not isinstance(outcome.get("result"), dict):
+            raise RuntimeError("invalid reconciliation response")
+        return dict(outcome["result"])

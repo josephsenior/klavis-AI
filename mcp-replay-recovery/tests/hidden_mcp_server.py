@@ -13,6 +13,7 @@ class ToolState:
     def __init__(self) -> None:
         self.lock = threading.Lock()
         self.results: dict[str, dict[str, Any]] = {}
+        self.audit_results: dict[str, dict[str, Any]] = {}
         self.resources: dict[str, dict[str, Any]] = {}
         self.commits: list[dict[str, Any]] = []
         self.effect_counts: Counter[str] = Counter()
@@ -67,9 +68,21 @@ class ToolState:
             else:
                 raise ValueError(f"unknown v2 tool: {name}")
             self.results[key] = result
+            self.audit_results[key] = result
             self.effect_counts[key] += 1
             self.commits.append({"key": key, "name": name, "arguments": arguments})
             return result
+
+    def expire_dedupe(self, key: str) -> None:
+        with self.lock:
+            self.results.pop(key, None)
+
+    def lookup(self, key: str) -> dict[str, Any]:
+        with self.lock:
+            result = self.audit_results.get(key)
+            if result is None:
+                return {"found": False}
+            return {"found": True, "result": json.loads(json.dumps(result))}
 
     def observable(self) -> dict[str, Any]:
         with self.lock:
@@ -107,11 +120,17 @@ class RunningServer:
                     if "io.modelcontextprotocol/clientInfo" not in metadata:
                         raise KeyError("missing MCP client metadata")
                     try:
-                        structured = state.call(
-                            metadata["io.klavis/idempotencyKey"],
-                            params["name"],
-                            params["arguments"],
-                        )
+                        if params["name"] == "lookup_call":
+                            arguments = params["arguments"]
+                            if set(arguments) != {"idempotency_key"}:
+                                raise ValueError("invalid lookup_call arguments")
+                            structured = state.lookup(arguments["idempotency_key"])
+                        else:
+                            structured = state.call(
+                                metadata["io.klavis/idempotencyKey"],
+                                params["name"],
+                                params["arguments"],
+                            )
                         result = {
                             "content": [{"type": "text", "text": json.dumps(structured, sort_keys=True)}],
                             "structuredContent": structured,

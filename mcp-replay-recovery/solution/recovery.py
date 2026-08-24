@@ -224,6 +224,14 @@ def _recover_locked(journal: Journal, client: ToolClient) -> None:
         ):
             raise ValueError("operation has an incomplete prerequisite")
         dispatch_key = dispatch_keys.get(key, operation.logical_id)
+        if status.get(key) == "DISPATCHED":
+            reconciled = client.lookup(dispatch_key)
+            if reconciled is not None:
+                journal.append(_event("RESULT_DURABLE", operation, result=reconciled))
+                results[key] = reconciled
+                journal.append(_event("ACKED", operation))
+                status[key] = TERMINAL
+                continue
         journal.append(
             _event("DISPATCHED", operation, idempotency_key=dispatch_key)
         )
