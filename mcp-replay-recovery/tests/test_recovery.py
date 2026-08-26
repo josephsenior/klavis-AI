@@ -1549,7 +1549,7 @@ def test_new_dispatch_persists_resolved_wire_snapshot(tmp_path: Path) -> None:
     authority = [
         record
         for record in records
-        if record["event"] in {"DISPATCHED", "REMOTE_OBSERVED"}
+        if record["event"] in {"PREPARED", "DISPATCHED", "REMOTE_OBSERVED"}
     ]
     assert authority
     for record in authority:
@@ -1558,6 +1558,191 @@ def test_new_dispatch_persists_resolved_wire_snapshot(tmp_path: Path) -> None:
         assert record["request_fingerprint"] == wire_fingerprint(
             expected_name, expected_arguments
         )
+
+
+def test_prepared_snapshot_is_durable_before_first_remote_acquisition(
+    tmp_path: Path,
+) -> None:
+    allocate = operation(
+        "allocate",
+        "reserve_worker",
+        {"pool": "prepared-before-acquire", "count": 1},
+        schema=1,
+        session="prepared-before-acquire",
+    )
+    expected_arguments = {
+        "pool_id": "prepared-before-acquire",
+        "quantity": 1,
+        "priority": "normal",
+    }
+
+    with RunningServer() as remote:
+        crashed = invoke(
+            tmp_path,
+            remote.endpoint,
+            "execute",
+            [allocate],
+            fault="after_prepare",
+        )
+        assert crashed.returncode == 86
+        records = [
+            json.loads(line)
+            for line in (tmp_path / "session.jsonl").read_text(
+                encoding="utf-8"
+            ).splitlines()
+        ]
+        assert [record["event"] for record in records] == ["PLANNED", "PREPARED"]
+        prepared = records[-1]
+        assert prepared["wire_name"] == "allocate_workers"
+        assert prepared["wire_arguments"] == expected_arguments
+        assert prepared["request_fingerprint"] == wire_fingerprint(
+            "allocate_workers", expected_arguments
+        )
+        assert remote.state.claims == {}
+        assert remote.state.acquire_revisions == {}
+
+        recovered = invoke(tmp_path, remote.endpoint, "recover")
+        assert recovered.returncode == 0, recovered.stderr
+        assert remote.state.effect_counts[prepared["idempotency_key"]] == 1
+
+
+def test_prepared_snapshot_recovers_lost_claim_after_migration_drift(
+    tmp_path: Path,
+) -> None:
+    allocate = operation(
+        "allocate",
+        "reserve_worker",
+        {"pool": "prepared-drift", "count": 1},
+        schema=1,
+        session="prepared-drift",
+    )
+    dispatch_key = "historical-wire/prepared-drift"
+    historical_arguments = {
+        "pool_id": "prepared-drift",
+        "quantity": 1,
+        "priority": "opaque",
+    }
+    fingerprint = wire_fingerprint("allocate_workers", historical_arguments)
+    prepared = {
+        "event": "PREPARED",
+        "session_id": allocate["session_id"],
+        "operation_id": allocate["operation_id"],
+        "idempotency_key": dispatch_key,
+        "request_fingerprint": fingerprint,
+        "wire_name": "allocate_workers",
+        "wire_arguments": historical_arguments,
+    }
+
+    with RunningServer() as remote:
+        # The prior process acquired this claim and lost the response before it
+        # could persist the returned token/revision. Only PREPARED is local.
+        claim = remote.state.acquire(
+            "seed:lost-prepared-acquire", dispatch_key, fingerprint, 0
+        )
+        write_records(
+            tmp_path / "session.jsonl",
+            [legacy_plan(allocate), prepared],
+        )
+
+        recovered = invoke(tmp_path, remote.endpoint, "recover")
+        assert recovered.returncode == 0, recovered.stderr
+        assert remote.state.commits == [
+            {
+                "key": dispatch_key,
+                "name": "allocate_workers",
+                "arguments": historical_arguments,
+            }
+        ]
+        assert remote.state.call_requests[dispatch_key] == 1
+        assert remote.state.effect_counts[dispatch_key] == 1
+        assert remote.state.claims[dispatch_key]["dispatch_token"] == claim[
+            "dispatch_token"
+        ]
+
+
+def test_prepared_snapshot_survives_compaction_before_claim_acquisition(
+    tmp_path: Path,
+) -> None:
+    allocate = operation(
+        "allocate",
+        "reserve_worker",
+        {"pool": "prepared-compaction", "count": 1},
+        schema=1,
+        session="prepared-compaction",
+    )
+    dispatch_key = "historical-wire/prepared-compaction"
+    historical_arguments = {
+        "pool_id": "prepared-compaction",
+        "quantity": 1,
+        "priority": "opaque",
+    }
+    fingerprint = wire_fingerprint("allocate_workers", historical_arguments)
+    write_records(
+        tmp_path / "session.jsonl",
+        [
+            legacy_plan(allocate),
+            {
+                "event": "PREPARED",
+                "session_id": allocate["session_id"],
+                "operation_id": allocate["operation_id"],
+                "idempotency_key": dispatch_key,
+                "request_fingerprint": fingerprint,
+                "wire_name": "allocate_workers",
+                "wire_arguments": historical_arguments,
+            },
+        ],
+    )
+
+    with RunningServer() as remote:
+        compacted = invoke(tmp_path, remote.endpoint, "compact")
+        assert compacted.returncode == 0, compacted.stderr
+        checkpoint = json.loads(
+            (tmp_path / "session.jsonl.checkpoint").read_text(encoding="utf-8")
+        )
+        entry = checkpoint["state"]["operations"][0]
+        assert entry["status"] == "PREPARED"
+        assert entry["attempts"] == 0
+        assert entry["idempotency_key"] == dispatch_key
+        assert entry["wire_name"] == "allocate_workers"
+        assert entry["wire_arguments"] == historical_arguments
+
+        recovered = invoke(tmp_path, remote.endpoint, "recover")
+        assert recovered.returncode == 0, recovered.stderr
+        assert remote.state.commits[0]["arguments"] == historical_arguments
+
+
+def test_prepared_snapshot_tampering_is_rejected_before_remote_acquisition(
+    tmp_path: Path,
+) -> None:
+    allocate = operation(
+        "allocate",
+        "allocate_workers",
+        {"pool_id": "prepared-tamper", "quantity": 1, "priority": "normal"},
+        session="prepared-tamper",
+    )
+    write_records(
+        tmp_path / "session.jsonl",
+        [
+            legacy_plan(allocate),
+            {
+                "event": "PREPARED",
+                "session_id": allocate["session_id"],
+                "operation_id": allocate["operation_id"],
+                "idempotency_key": "prepared-tamper/key",
+                "request_fingerprint": wire_fingerprint(
+                    "allocate_workers", allocate["arguments"]
+                ),
+                "wire_name": "allocate_workers",
+                "wire_arguments": {**allocate["arguments"], "priority": "opaque"},
+            },
+        ],
+    )
+
+    with RunningServer() as remote:
+        rejected = invoke(tmp_path, remote.endpoint, "recover")
+        assert rejected.returncode != 0
+        assert remote.state.claims == {}
+        assert remote.state.acquire_revisions == {}
 
 
 def test_durable_wire_snapshot_replays_after_migration_drift(tmp_path: Path) -> None:

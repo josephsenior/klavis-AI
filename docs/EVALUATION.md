@@ -247,6 +247,25 @@ The public contract now requires each current writer to fsync the exact resolved
 | Official static checks | 22/22 pass |
 | Harbor Oracle | 99/99 pass, 0 exceptions, reward 1.000 (`jobs/2026-08-26__20-13-42`) |
 | Harbor Nop | 42 passed, 57 failed, 0 exceptions, reward 0.000 (`jobs/2026-08-26__20-16-35`) |
-| Fresh Codex/xhigh | Pending 99-case trial |
+| Fresh Codex/xhigh | 99/99 pass, 0 exceptions, reward 1.000 (`jobs/2026-08-26__20-20-00`) |
 
 The frozen-artifact differential is design evidence, not frontier-threshold evidence: the candidate predates both the five tests and their clarified public contract. A failure will count only if a fresh candidate receives the current task and fails a fair verifier assertion after artifact-level review.
+
+The fresh Codex/xhigh trial (`jobs/2026-08-26__20-20-00`, artifact `mcp-replay-recovery__z4RdhuN`) passed all 99 tests with zero exceptions and reward 1.000 in 32m 39s. It consumed 4,739,553 input tokens (4,574,464 cached) and 76,020 output tokens, with Harbor reporting a cost of $4.010542. Artifact and trajectory review confirmed a substantive independent state-machine repair including immutable wire snapshots; this is another valid model success, so the checkpoint remained under-calibrated.
+
+### Pre-acquisition prepared-request checkpoint
+
+Review of that successful architecture exposed a durability interval before `DISPATCHED`: request resolution was followed by `acquire_call`, and only the returned token/revision record made the wire snapshot durable. Unlike a read-only lookup, acquisition can create durable remote authority. If its response is lost and the process restarts after migration code changes, a merely `PLANNED` operation derives a new fingerprint and conflicts with its own live remote claim.
+
+The lifecycle now includes `PREPARED`. Once dependencies and result bindings are durable, the current writer fsyncs the effective dispatch key, exact resolved wire name and arguments, and fingerprint before its first acquisition. `PREPARED` has zero attempts and no server-issued identity. Recovery and compaction preserve it verbatim, so a lost claim response can be reacquired under the historical request after a deployment changes migration behavior. Four new cases cover current-writer ordering before remote contact, historical lost-claim recovery under migration drift, zero-attempt compaction retention, and tamper rejection before acquisition; the existing writer test now also verifies the prepared snapshot.
+
+| Check | Result |
+| --- | --- |
+| Focused local reference repair | 5/5 pass |
+| Complete local reference repair | 102 passed, 1 Windows platform skip |
+| Official static checks | 22/22 pass |
+| Harbor Oracle | 103/103 passed, 0 exceptions, reward 1.000 (`jobs/2026-08-27__01-34-34`) |
+| Harbor Nop | 43 passed, 60 failed, 0 exceptions, reward 0.000 (`jobs/2026-08-27__01-37-44`) |
+| Fresh Codex/xhigh | Pending 103-case trial |
+
+The successful 99-test candidate predates this public lifecycle and therefore cannot supply threshold evidence. Its missing pre-acquisition durability is architectural design evidence only; the next countable sample must be a fresh run against all 103 cases.
