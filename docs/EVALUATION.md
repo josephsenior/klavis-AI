@@ -183,3 +183,53 @@ The first Codex/xhigh attempt reported reward 0.000 with zero exceptions in 23m 
 A clean replacement trial against the corrected 29-test verifier passed with 0 exceptions and reward 1.000 in 28m 18s. The artifact implemented checksummed normalized state, exact covered-prefix hashing, checkpoint-plus-suffix recovery, post-compaction planning, uncertain-dispatch reconciliation, and active-checkpoint integrity. This sixth valid successful pilot shows that checkpoint/compaction substantially broadens the architecture but remains under-calibrated for the required Codex configuration.
 
 A second clean Codex/xhigh reliability sample was run directly from pushed commit `c582312`. It passed all 29 tests with 0 exceptions and reward 1.000 in 25m 51s. Trajectory inspection again showed a coherent independent reconstruction of the recovery subsystem rather than a verifier shortcut: the candidate implemented atomic normalized checkpoints, covered-prefix handling, schema migration, scoped bindings, concurrent ownership, and uncertain-outcome reconciliation. The corrected checkpoint/compaction version is therefore 2/2 for Codex and is definitively under-calibrated relative to the required frontier-failure threshold.
+
+### Authoritative remote-state and checkpoint-lineage checkpoint
+
+The recovery contract was expanded from request-level deduplication into an explicit remote authority protocol. Dispatch now has a semantic request fingerprint, durable claim token, monotonic authority revision, and generation. A generation may be retried only while the same claim remains authoritative; an abandoned generation requires a durable `ABORTED` proof before a fenced successor can be dispatched. A successful side-effect response is not itself authoritative: recovery must observe and persist a matching durable commit receipt, materialize any offloaded result, verify its canonical digest, and reject identity, revision, generation, or result drift.
+
+Compaction now publishes a format-2 content-addressed checkpoint. The journal suffix is bound to the exact checkpoint base, including a zero-length boundary, so an unrelated or rolled-back history cannot be adopted merely because its byte count matches. The verifier also checks first-file parent-directory durability and lifecycle validation before remote effects.
+
+| Check | Result |
+| --- | --- |
+| Local reference repair | 81 passed, 1 Windows platform skip |
+| Official static checks | 22/22 pass |
+| Harbor Oracle | 82/82 pass, 0 exceptions, reward 1.000 |
+| Harbor Nop | reward 0.000, 0 exceptions |
+
+A valid Codex/xhigh trial (`jobs/2026-08-25__14-23-21`, artifact `mcp-replay-recovery__9wASvNx`) passed all 82 tests with 0 exceptions and reward 1.000 in 36m 40s. It consumed 4,888,876 input tokens (4,737,024 cached) and 72,355 output tokens, with Harbor reporting a cost of $3.9493. Artifact and trajectory review found a substantive implementation of the authority, receipt, generation-fencing, and checkpoint-lineage requirements. This is a valid model success, not threshold evidence.
+
+### Crash-safe remote-result release checkpoint
+
+The protocol now requires remote result bodies to be released only after the matching result is durable locally and the operation is acknowledged. Cleanup is itself a recoverable state machine: `PENDING` must be polled with fresh transport identities, `RELEASED` and `ALREADY_RELEASED` are successful terminal observations, `CONFLICT` is fatal, and a local `RESULT_RELEASED` event may be appended only after authoritative remote confirmation. Pending cleanup must survive compaction, and a lost successful release response must reconcile through a durable tombstone without redispatching business work.
+
+| Check | Result |
+| --- | --- |
+| Local reference repair | 89 passed, 1 Windows platform skip |
+| Official static checks | 22/22 pass |
+| Harbor Oracle | 90/90 pass, 0 exceptions, reward 1.000 (`jobs/2026-08-25__15-26-44`) |
+| Harbor Nop | 41 passed, 49 failed, 0 exceptions, reward 0.000 (`jobs/2026-08-25__15-28-42`) |
+
+A clean Codex/xhigh trial (`jobs/2026-08-25__15-32-16`, artifact `mcp-replay-recovery__cSDaCGq`) passed all 90 tests with 0 exceptions and reward 1.000 in 37m 15s. It consumed 4,415,213 input tokens (4,272,640 cached) and 63,305 output tokens, with Harbor reporting a cost of $3.545448. Review confirmed that the candidate implemented the release lifecycle rather than bypassing cleanup. The 90-test checkpoint therefore remained under-calibrated.
+
+### Cooperative recovery-scheduler checkpoint
+
+Artifact-level differential analysis of the successful 90-test repair exposed a remaining liveness defect. Its recovery loop polls one operation to remote convergence before considering independent dependency-ready work. That architecture can deadlock when a pending acquisition, stale post-call receipt, offloaded result, or cleanup release becomes visible only after another ready business operation commits.
+
+The public protocol now requires deterministic cooperative scheduling. A remote-pending operation yields to other dependency-ready operations; a side effect already dispatched during the current invocation may not be sent again while confirmation is stale; and best-effort cleanup runs only after the business dependency graph has converged. Four hidden cases model these barriers with bounded poll budgets, avoiding wall-clock timing and thread-scheduling dependence.
+
+| Check | Result |
+| --- | --- |
+| Four new cases against the valid 90-test Codex artifact | 0/4 pass; each exhausts a distinct remote poll budget |
+| Local reference repair | 93 passed, 1 Windows platform skip |
+| Official static checks | 22/22 pass |
+| Harbor Oracle | 94/94 pass, 0 exceptions, reward 1.000 (`jobs/2026-08-25__16-31-39`) |
+| Harbor Nop | 42 passed, 52 failed, 0 exceptions, reward 0.000 (`jobs/2026-08-25__16-33-41`) |
+
+This differential result was strong design evidence but could not be counted as a frontier failure because the artifact predated the four tests and their clarified public contract.
+
+A fresh Codex/xhigh trial (`jobs/2026-08-25__16-38-49`, artifact `mcp-replay-recovery__yJp92o7`) completed with 0 exceptions and an apparent reward of 0.000 in 42m 34s. Harbor ran all 94 tests: 93 passed, and only the offloaded-result fairness case failed. Inspection showed that the candidate validly acquired the committed receipt, advanced the independent operation, and then fetched the now-available result once. The verifier had incorrectly required exactly two reads—an unnecessary `PENDING` read followed by `AVAILABLE`—even though the public contract constrains fairness and convergence, not an inefficient polling trace.
+
+The assertion now requires at least one authenticated result read. Against the corrected verifier, the frozen fresh artifact passes all four scheduler cases and the complete local suite (93 passed, 1 Windows platform skip). The older serial 90-test artifact still fails all four scheduler cases on their distinct deterministic poll budgets. The apparent 0.000 is therefore invalidated and excluded from failure evidence; the candidate genuinely implemented a cooperative scheduler, so this checkpoint remains under-calibrated.
+
+Harbor also failed to convert the completed Codex event stream to its derived trajectory on Windows because it opened a UTF-8 JSONL file using CP-1252. The raw event stream remained intact and auditable. It records 6,355,673 input tokens (6,185,728 cached) and 84,702 output tokens. This post-run reporting defect did not affect agent execution or grading.

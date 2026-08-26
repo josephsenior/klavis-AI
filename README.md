@@ -12,18 +12,18 @@ Frontier coding agents are strong at localized bug fixing but still struggle to 
 
 | Check | Result |
 | --- | --- |
-| Deterministic verifier scenarios | 29 implemented, including 5 generated seeds |
-| Nop/local baseline | Overall reward 0; checkpoint/compaction cases fail |
-| Oracle/local reference repair | 29/29 tests pass |
+| Deterministic verifier scenarios | 94 pytest cases, including generated mixed-schema seeds and crash matrices |
+| Nop baseline | 42/94 pass; overall reward 0 |
+| Oracle reference repair | 93 pass + 1 platform skip locally; 94/94 pass in Docker |
 | Separate verifier structure | Implemented and container-tested |
 | Docker image build | Agent and verifier images build successfully |
 | Harbor Oracle/Nop runs | Oracle=1.000, Nop=0.000, zero exceptions |
 | Official static checks | 22/22 pass |
-| Codex calibration | Seven valid pilots passed; corrected checkpoint/compaction version is 2/2 and under-calibrated |
+| Codex calibration | Nine valid pilots passed through 90 tests; the fresh 94-test artifact also passes after correcting one over-constrained assertion |
 | Claude calibration | Not started |
 | Adversarial `/cheat` trials | Not started |
 
-The current verifier covers uncertain remote commits, pre-receipt crashes, crashes after durable local results, durable remote-outcome reconciliation after request-dedupe expiry, atomic checkpoint publication and compaction, covered-prefix suppression after a compaction crash, checkpoint integrity, post-compaction result binding and uncertain dispatch recovery, mixed v1/v2 replay, historical dispatch-key reuse across key-encoding migration, dependency ordering independent of journal order, multiplexed sessions, collision-free identity, torn-tail repair, concurrent ownership and owner-crash failover, a 4,096-operation dependency chain, invalid dependency graphs, and crash/restart convergence.
+The current verifier covers uncertain remote commits, durable authoritative commit receipts, offloaded result materialization, fenced successor generations, monotonic authority revisions, crash-safe result release, cooperative polling without head-of-line blocking, atomic content-addressed checkpoint publication and compaction, checkpoint lineage and integrity, mixed v1/v2 replay, historical dispatch-key reuse, dependency ordering, multiplexed sessions, collision-free identity, torn-tail and directory-durability repair, concurrent ownership and failover, a 4,096-operation dependency chain, invalid dependency graphs, and crash/restart convergence.
 
 ## Repository layout
 
@@ -41,4 +41,4 @@ harbor run -p mcp-replay-recovery --agent oracle --env docker --yes
 harbor run -p mcp-replay-recovery --agent nop --env docker --yes
 ```
 
-The next stage is rubric review, adversarial verifier hardening, one Codex pilot, failure-guided calibration, and only then the required standard and `/cheat` trial matrix. See `docs/EVALUATION.md` for recorded runs.
+The cooperative scheduler checkpoint is also under-calibrated. The next stage is artifact-led architectural refinement, followed by fresh model trials and only then the required repeated frontier and `/cheat` matrix. See `docs/EVALUATION.md` for recorded runs.

@@ -11,3 +11,4 @@ The server accepts the v2 wire schema. Journals can contain either documented re
 
 Migration changes only the wire representation. It must not change operation identity, dependencies, or logical meaning.
 
+The control tools `lookup_call`, `acquire_call`, `read_result`, and `release_result` are protocol operations, not migrated business calls. `read_result` and `release_result` both take the immutable `result_ref` and `result_sha256` receipt pair.
