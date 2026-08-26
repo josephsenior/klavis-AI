@@ -233,3 +233,20 @@ A fresh Codex/xhigh trial (`jobs/2026-08-25__16-38-49`, artifact `mcp-replay-rec
 The assertion now requires at least one authenticated result read. Against the corrected verifier, the frozen fresh artifact passes all four scheduler cases and the complete local suite (93 passed, 1 Windows platform skip). The older serial 90-test artifact still fails all four scheduler cases on their distinct deterministic poll budgets. The apparent 0.000 is therefore invalidated and excluded from failure evidence; the candidate genuinely implemented a cooperative scheduler, so this checkpoint remains under-calibrated.
 
 Harbor also failed to convert the completed Codex event stream to its derived trajectory on Windows because it opened a UTF-8 JSONL file using CP-1252. The raw event stream remained intact and auditable. It records 6,355,673 input tokens (6,185,728 cached) and 84,702 output tokens. This post-run reporting defect did not affect agent execution or grading.
+
+### Immutable resolved wire-request checkpoint
+
+Artifact review of the successful scheduler candidate exposed a distinct durability gap. It retained only a fingerprint of the migrated request. That hash can detect when current migration code derives a different request, but it cannot reproduce the exact historical wire request needed to finish an already-authorized attempt. Rejecting every such attempt preserves safety only by sacrificing recoverability after an ordinary deployment changes the migration table.
+
+The public contract now requires each current writer to fsync the exact resolved `wire_name` and `wire_arguments` with the request fingerprint before the first side effect. That snapshot is immutable through restart, successor generations, remote reconciliation, and compaction. Legacy attempted records without the snapshot remain compatible only while their historical fingerprint can still be reproduced, and the next current lifecycle record upgrades them before another side effect. Five deterministic cases cover current-writer persistence, retry after migration drift, committed-result reconciliation after drift, compaction retention, and snapshot/fingerprint tamper rejection before any remote contact.
+
+| Check | Result |
+| --- | --- |
+| Five new cases against the corrected fresh 94-test Codex artifact | 0/5 pass, each for the intended missing wire-snapshot invariant |
+| Local reference repair | 98 passed, 1 Windows platform skip |
+| Official static checks | 22/22 pass |
+| Harbor Oracle | 99/99 pass, 0 exceptions, reward 1.000 (`jobs/2026-08-26__20-13-42`) |
+| Harbor Nop | 42 passed, 57 failed, 0 exceptions, reward 0.000 (`jobs/2026-08-26__20-16-35`) |
+| Fresh Codex/xhigh | Pending 99-case trial |
+
+The frozen-artifact differential is design evidence, not frontier-threshold evidence: the candidate predates both the five tests and their clarified public contract. A failure will count only if a fresh candidate receives the current task and fails a fair verifier assertion after artifact-level review.
