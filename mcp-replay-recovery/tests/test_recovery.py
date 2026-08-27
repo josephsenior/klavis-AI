@@ -1577,32 +1577,42 @@ def test_prepared_snapshot_is_durable_before_first_remote_acquisition(
     }
 
     with RunningServer() as remote:
-        crashed = invoke(
-            tmp_path,
-            remote.endpoint,
-            "execute",
-            [allocate],
-            fault="after_prepare",
-        )
-        assert crashed.returncode == 86
-        records = [
-            json.loads(line)
-            for line in (tmp_path / "session.jsonl").read_text(
-                encoding="utf-8"
-            ).splitlines()
+        observed_journals: list[list[dict]] = []
+        original_acquire = remote.state.acquire
+
+        def observe_before_acquire(
+            transport_key: str,
+            key: str,
+            expected_fingerprint: str,
+            after_revision: int = 0,
+        ) -> dict:
+            observed_journals.append(
+                [
+                    json.loads(line)
+                    for line in (tmp_path / "session.jsonl").read_text(
+                        encoding="utf-8"
+                    ).splitlines()
+                ]
+            )
+            return original_acquire(
+                transport_key, key, expected_fingerprint, after_revision
+            )
+
+        remote.state.acquire = observe_before_acquire
+        executed = invoke(tmp_path, remote.endpoint, "execute", [allocate])
+        assert executed.returncode == 0, executed.stderr
+        assert observed_journals
+        first_acquisition_records = observed_journals[0]
+        assert [record["event"] for record in first_acquisition_records] == [
+            "PLANNED",
+            "PREPARED",
         ]
-        assert [record["event"] for record in records] == ["PLANNED", "PREPARED"]
-        prepared = records[-1]
+        prepared = first_acquisition_records[-1]
         assert prepared["wire_name"] == "allocate_workers"
         assert prepared["wire_arguments"] == expected_arguments
         assert prepared["request_fingerprint"] == wire_fingerprint(
             "allocate_workers", expected_arguments
         )
-        assert remote.state.claims == {}
-        assert remote.state.acquire_revisions == {}
-
-        recovered = invoke(tmp_path, remote.endpoint, "recover")
-        assert recovered.returncode == 0, recovered.stderr
         assert remote.state.effect_counts[prepared["idempotency_key"]] == 1
 
 

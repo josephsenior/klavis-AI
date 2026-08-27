@@ -264,8 +264,12 @@ The lifecycle now includes `PREPARED`. Once dependencies and result bindings are
 | Focused local reference repair | 5/5 pass |
 | Complete local reference repair | 102 passed, 1 Windows platform skip |
 | Official static checks | 22/22 pass |
-| Harbor Oracle | 103/103 passed, 0 exceptions, reward 1.000 (`jobs/2026-08-27__01-34-34`) |
-| Harbor Nop | 43 passed, 60 failed, 0 exceptions, reward 0.000 (`jobs/2026-08-27__01-37-44`) |
-| Fresh Codex/xhigh | Pending 103-case trial |
+| Harbor Oracle | 103/103 passed, 0 exceptions, reward 1.000 (`jobs/2026-08-27__02-27-16`) |
+| Harbor Nop | 43 passed, 60 failed, 0 exceptions, reward 0.000 (`jobs/2026-08-27__02-29-49`) |
+| Fresh Codex/xhigh | First 103-case sample requires a fairness rerun; see below |
 
 The successful 99-test candidate predates this public lifecycle and therefore cannot supply threshold evidence. Its missing pre-acquisition durability is architectural design evidence only; the next countable sample must be a fresh run against all 103 cases.
+
+The first fresh 103-case Codex/xhigh trial (`jobs/2026-08-27__01-41-22`, artifact `mcp-replay-recovery__5tKiv4q`) completed with 102 passed, 1 failed, zero exceptions, and reward 0.000 in 39m 03s. It consumed 4,643,915 input tokens (4,497,152 cached) and 69,644 output tokens, with Harbor reporting a cost of $3.778793. The sole failure expected the candidate to invoke a newly invented hidden fault label, `after_prepare`. Artifact and trajectory review showed that the candidate had implemented and fsynced the documented `PREPARED` record before acquisition and passed every semantic migration-drift, compaction, and tamper case. The failure therefore does **not** count toward the frontier threshold.
+
+The ordering case was corrected to inspect the journal synchronously when the verifier server receives the first `acquire_call`. It now proves the actual published invariant—only `PLANNED` and a complete durable `PREPARED` may exist before acquisition—without requiring candidates to guess an instrumentation name. The corrected focused Oracle passes, the complete local Oracle remains 102 passed plus the one Windows platform skip, all 22 static checks pass, and fresh Docker gates produce Oracle 103/103 and Nop 43/103 with zero exceptions. A fresh Codex sample is still required before any threshold claim.
