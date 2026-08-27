@@ -73,6 +73,43 @@ def canonical_result_digest(result: dict) -> str:
     return hashlib.sha256(canonical).hexdigest()
 
 
+def plan_sha256(operations: list[dict]) -> str:
+    canonical = json.dumps(
+        operations,
+        sort_keys=True,
+        separators=(",", ":"),
+        ensure_ascii=False,
+    ).encode()
+    return hashlib.sha256(canonical).hexdigest()
+
+
+def staged_plan_records(
+    operations: list[dict], *, staged_count: int, committed: bool = False
+) -> list[dict]:
+    plan_id = plan_sha256(operations)
+    records = [
+        {
+            "event": "PLAN_BEGIN",
+            "plan_id": plan_id,
+            "operation_count": len(operations),
+        }
+    ]
+    records.extend(
+        {
+            "event": "PLANNED",
+            "session_id": value["session_id"],
+            "operation_id": value["operation_id"],
+            "operation": value,
+            "plan_id": plan_id,
+            "plan_index": index,
+        }
+        for index, value in enumerate(operations[:staged_count])
+    )
+    if committed:
+        records.append({"event": "PLAN_COMMITTED", "plan_id": plan_id})
+    return records
+
+
 def refresh_checkpoint_authentication(checkpoint: dict) -> None:
     encoded_state = json.dumps(
         checkpoint["state"],
@@ -1604,7 +1641,9 @@ def test_prepared_snapshot_is_durable_before_first_remote_acquisition(
         assert observed_journals
         first_acquisition_records = observed_journals[0]
         assert [record["event"] for record in first_acquisition_records] == [
+            "PLAN_BEGIN",
             "PLANNED",
+            "PLAN_COMMITTED",
             "PREPARED",
         ]
         prepared = first_acquisition_records[-1]
@@ -1614,6 +1653,110 @@ def test_prepared_snapshot_is_durable_before_first_remote_acquisition(
             "allocate_workers", expected_arguments
         )
         assert remote.state.effect_counts[prepared["idempotency_key"]] == 1
+
+
+def test_incomplete_plan_batch_never_reaches_remote_control_plane(tmp_path: Path) -> None:
+    allocate = operation(
+        "allocate", "allocate_workers",
+        {"pool_id": "atomic-plan", "quantity": 1, "priority": "normal"},
+        session="atomic-plan",
+    )
+    tag = operation(
+        "tag", "tag_worker", {"worker_id": "not-yet-bound", "tag": "ready"},
+        depends_on=("allocate",), session="atomic-plan",
+    )
+    write_records(
+        tmp_path / "session.jsonl",
+        staged_plan_records([allocate, tag], staged_count=1),
+    )
+
+    with RunningServer() as remote:
+        rejected = invoke(tmp_path, remote.endpoint, "recover")
+        assert rejected.returncode != 0
+        assert remote.state.claims == {}
+        assert remote.state.acquire_revisions == {}
+        assert remote.state.commits == []
+
+
+def test_execute_resumes_matching_incomplete_plan_batch(tmp_path: Path) -> None:
+    allocate = operation(
+        "allocate", "allocate_workers",
+        {"pool_id": "resume-plan", "quantity": 1, "priority": "normal"},
+        session="resume-plan",
+    )
+    write_records(
+        tmp_path / "session.jsonl",
+        staged_plan_records([allocate], staged_count=0),
+    )
+
+    with RunningServer() as remote:
+        resumed = invoke(tmp_path, remote.endpoint, "execute", [allocate])
+        assert resumed.returncode == 0, resumed.stderr
+        records = [
+            json.loads(line)
+            for line in (tmp_path / "session.jsonl").read_text(encoding="utf-8").splitlines()
+        ]
+        assert [record["event"] for record in records[:3]] == [
+            "PLAN_BEGIN", "PLANNED", "PLAN_COMMITTED"
+        ]
+        assert sum(remote.state.effect_counts.values()) == 1
+
+
+def test_different_plan_cannot_replace_incomplete_plan_batch(tmp_path: Path) -> None:
+    original = operation(
+        "allocate", "allocate_workers",
+        {"pool_id": "original-plan", "quantity": 1, "priority": "normal"},
+        session="plan-conflict",
+    )
+    replacement = operation(
+        "allocate", "allocate_workers",
+        {"pool_id": "replacement-plan", "quantity": 1, "priority": "normal"},
+        session="plan-conflict",
+    )
+    journal = tmp_path / "session.jsonl"
+    write_records(journal, staged_plan_records([original], staged_count=0))
+    before = journal.read_bytes()
+
+    with RunningServer() as remote:
+        rejected = invoke(tmp_path, remote.endpoint, "execute", [replacement])
+        assert rejected.returncode != 0
+        assert journal.read_bytes() == before
+        assert remote.state.claims == {}
+
+
+def test_plan_commit_authenticates_complete_operation_array(tmp_path: Path) -> None:
+    allocate = operation(
+        "allocate", "allocate_workers",
+        {"pool_id": "plan-digest", "quantity": 1, "priority": "normal"},
+        session="plan-digest",
+    )
+    records = staged_plan_records([allocate], staged_count=1, committed=True)
+    records[1]["operation"]["arguments"]["pool_id"] = "tampered"
+    write_records(tmp_path / "session.jsonl", records)
+
+    with RunningServer() as remote:
+        rejected = invoke(tmp_path, remote.endpoint, "recover")
+        assert rejected.returncode != 0
+        assert remote.state.claims == {}
+        assert remote.state.acquire_revisions == {}
+
+
+def test_compaction_cannot_discard_incomplete_plan_batch(tmp_path: Path) -> None:
+    allocate = operation(
+        "allocate", "allocate_workers",
+        {"pool_id": "uncommitted-compact", "quantity": 1, "priority": "normal"},
+        session="uncommitted-compact",
+    )
+    journal = tmp_path / "session.jsonl"
+    write_records(journal, staged_plan_records([allocate], staged_count=1))
+    before = journal.read_bytes()
+
+    with RunningServer() as remote:
+        rejected = invoke(tmp_path, remote.endpoint, "compact")
+        assert rejected.returncode != 0
+        assert journal.read_bytes() == before
+        assert not (tmp_path / "session.jsonl.checkpoint").exists()
+        assert remote.state.claims == {}
 
 
 def test_prepared_snapshot_recovers_lost_claim_after_migration_drift(

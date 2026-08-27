@@ -25,6 +25,7 @@ The repaired gateway must meet all of these observable requirements:
 - Arguments bound to durable results of prior operations resolve correctly after restart and remain scoped to the referencing session.
 - Concurrent recovery invocations for one journal serialize from reconstruction through durable completion and do not duplicate lifecycle attempts.
 - Adding operations to an existing journal repairs any torn tail before writing `PLANNED`; planning and recovery share one journal-ownership interval.
+- Each current `execute` admits its complete non-empty operation array as one authenticated plan transaction. It fsyncs `PLAN_BEGIN`, indexed plan records, and `PLAN_COMMITTED` before any operation can acquire remote authority. Recovery and compaction reject an incomplete or digest-mismatched transaction without remote contact; rerunning the exact same plan resumes its durable prefix, while a different plan cannot replace it.
 - Recovery validates and schedules documented production-scale dependency graphs without recursion failure or quadratic whole-graph closure construction.
 - Recovery preserves the valid durable prefix of a journal with a torn final write, and the first fsynced journal record also durably publishes the new file through a parent-directory fsync; this durability contract applies to the seeded `/app/gateway/journal.py` implementation.
 - Recovery rejects impossible lifecycle transitions and internally inconsistent checkpoint state before issuing any new remote side effect.

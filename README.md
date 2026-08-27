@@ -12,14 +12,14 @@ Frontier coding agents are strong at localized bug fixing but still struggle to 
 
 | Check | Result |
 | --- | --- |
-| Deterministic verifier scenarios | 103 pytest cases, including generated mixed-schema seeds and crash matrices |
-| Nop baseline | 43/103 pass, 60/103 fail in Docker; overall reward 0, zero exceptions |
-| Oracle reference repair | 102 pass + 1 platform skip locally; 103/103 pass in Docker |
+| Deterministic verifier scenarios | 108 pytest cases, including generated mixed-schema seeds and crash matrices |
+| Nop baseline | 46/108 pass, 62/108 fail in Docker; overall reward 0, zero exceptions |
+| Oracle reference repair | 107 pass + 1 platform skip locally; 108/108 pass in Docker |
 | Separate verifier structure | Implemented and container-tested |
 | Docker image build | Agent and verifier images build successfully |
-| Harbor Oracle/Nop runs | 103-case checkpoint: Oracle=1.000, Nop=0.000, zero exceptions |
-| Official static checks | 22/22 pass against the PREPARED contract |
-| Codex calibration | The fresh 99-test Codex/xhigh trial passed; its architecture lacks the new pre-acquisition `PREPARED` state, so a fresh 103-test trial remains pending after all gates pass |
+| Harbor Oracle/Nop runs | 108-case checkpoint: Oracle=1.000, Nop=0.000, zero exceptions |
+| Official static checks | 22/22 pass against transactional plan admission |
+| Codex calibration | Fresh fair 103-test Codex/xhigh passed; transactional plan-admission refinement now requires fresh calibration |
 | Claude calibration | Not started |
 | Adversarial `/cheat` trials | Not started |
 

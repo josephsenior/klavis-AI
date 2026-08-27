@@ -22,6 +22,94 @@ class _RemotePending(Exception):
     """Yield one operation so other ready work can make remote progress."""
 
 
+class IncompletePlanError(ValueError):
+    """A transactionally admitted plan has not reached PLAN_COMMITTED."""
+
+
+def plan_digest(operations: list[Operation]) -> str:
+    payload = [operation.to_dict() for operation in operations]
+    encoded = json.dumps(
+        payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False
+    ).encode()
+    return hashlib.sha256(encoded).hexdigest()
+
+
+def inspect_plan_admission(
+    records: list[dict[str, Any]], *, allow_incomplete: bool = False
+) -> tuple[list[dict[str, Any]], dict[str, Any] | None]:
+    """Authenticate plan transactions and expose only committed PLANNED records."""
+
+    admitted: list[dict[str, Any]] = []
+    active: dict[str, Any] | None = None
+    staged: list[Operation] = []
+    for record in records:
+        if not isinstance(record, dict):
+            raise ValueError("journal record is not an object")
+        event = record.get("event")
+        if active is None:
+            if event == "PLAN_BEGIN":
+                if set(record) != {"event", "plan_id", "operation_count"}:
+                    raise ValueError("invalid plan-begin shape")
+                plan_id = record.get("plan_id")
+                count = record.get("operation_count")
+                if (
+                    not isinstance(plan_id, str)
+                    or len(plan_id) != 64
+                    or any(character not in "0123456789abcdef" for character in plan_id)
+                    or not isinstance(count, int)
+                    or isinstance(count, bool)
+                    or count < 1
+                ):
+                    raise ValueError("invalid plan-begin identity")
+                active = dict(record)
+                staged = []
+                continue
+            if event == "PLAN_COMMITTED" or (
+                event == "PLANNED" and ({"plan_id", "plan_index"} & set(record))
+            ):
+                raise ValueError("plan transaction record lacks begin")
+            admitted.append(record)
+            continue
+
+        if len(staged) < active["operation_count"]:
+            if event != "PLANNED":
+                raise ValueError("incomplete plan transaction is interleaved")
+            expected = {
+                "event", "session_id", "operation_id", "operation", "plan_id", "plan_index"
+            }
+            if (
+                set(record) != expected
+                or record.get("plan_id") != active["plan_id"]
+                or record.get("plan_index") != len(staged)
+            ):
+                raise ValueError("invalid staged plan record")
+            staged.append(_planned_operation(record))
+            continue
+
+        if event != "PLAN_COMMITTED" or set(record) != {"event", "plan_id"}:
+            raise ValueError("plan transaction lacks commit")
+        if record.get("plan_id") != active["plan_id"] or plan_digest(staged) != active["plan_id"]:
+            raise ValueError("plan transaction digest mismatch")
+        admitted.extend(
+            {
+                "event": "PLANNED",
+                "session_id": operation.session_id,
+                "operation_id": operation.operation_id,
+                "operation": operation.to_dict(),
+            }
+            for operation in staged
+        )
+        active = None
+        staged = []
+
+    if active is not None:
+        pending = {**active, "operations": staged}
+        if not allow_incomplete:
+            raise IncompletePlanError("plan transaction is incomplete")
+        return admitted, pending
+    return admitted, None
+
+
 def _identity(operation: Operation) -> Identity:
     return operation.session_id, operation.operation_id
 
@@ -114,6 +202,7 @@ def reconstruct(
     set[Identity],
     set[Identity],
 ]:
+    records, _pending_plan = inspect_plan_admission(records)
     operations: OrderedDict[Identity, Operation] = OrderedDict()
     status: dict[Identity, str] = {}
     attempts: dict[Identity, int] = {}
