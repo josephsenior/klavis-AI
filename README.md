@@ -19,7 +19,7 @@ Frontier coding agents are strong at localized bug fixing but still struggle to 
 | Docker image build | Agent and verifier images build successfully |
 | Harbor Oracle/Nop runs | 108-case checkpoint: Oracle=1.000, Nop=0.000, zero exceptions |
 | Official static checks | 22/22 pass against transactional plan admission |
-| Codex calibration | Fresh fair 103-test Codex/xhigh passed; transactional plan-admission refinement now requires fresh calibration |
+| Codex calibration | First fresh 108-test Codex/xhigh sample: 102/108 passed, 6 substantive failures, zero exceptions |
 | Claude calibration | Not started |
 | Adversarial `/cheat` trials | Not started |
 
