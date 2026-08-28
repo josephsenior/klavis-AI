@@ -4,6 +4,8 @@ This repository is an in-progress Terminal-Bench 3 task about repairing durable 
 
 The candidate receives a compact Python gateway with a functioning v2 happy path and several interacting recovery defects. The separate verifier owns the remote tool server, injects crashes at semantic boundaries, and evaluates externally visible effects rather than trusting the gateway's local state.
 
+For review and reproduction, begin with the [reviewer guide](docs/REVIEWER_GUIDE.md), then the task's [overview](mcp-replay-recovery/README.md), [candidate instruction](mcp-replay-recovery/instruction.md), and [evaluation ledger](docs/EVALUATION.md).
+
 ## Capability hypothesis
 
 Frontier coding agents are strong at localized bug fixing but still struggle to preserve global invariants that span a persistent journal, uncertain remote outcomes, idempotency identity, schema migration, and causal dependencies. A plausible but incomplete repair often solves duplication by losing work, solves migration while changing identity, or replays successfully while violating ordering.
