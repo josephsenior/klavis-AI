@@ -20,7 +20,7 @@ Frontier coding agents are strong at localized bug fixing but still struggle to 
 | Harbor Oracle/Nop runs | 108-case checkpoint: Oracle=1.000, Nop=0.000, zero exceptions |
 | Official static checks | 22/22 pass against transactional plan admission |
 | Codex calibration | Complete: three audited 108-test Codex/xhigh failures (102/108, 104/108, 101/108), all zero exceptions |
-| Claude calibration | Not started |
+| Claude calibration | In progress: one audited 108-test Claude Opus 5/max failure (107/108), zero exceptions |
 | Adversarial `/cheat` trials | Not started |
 
 The current verifier covers pre-acquisition durable request preparation, lost claim responses across migration-code drift, uncertain remote commits, immutable resolved wire-request snapshots, durable authoritative commit receipts, offloaded result materialization, fenced successor generations, monotonic authority revisions, crash-safe result release, cooperative polling without head-of-line blocking, atomic content-addressed checkpoint publication and compaction, checkpoint lineage and integrity, mixed v1/v2 replay, historical dispatch-key reuse, dependency ordering, multiplexed sessions, collision-free identity, torn-tail and directory-durability repair, concurrent ownership and failover, a 4,096-operation dependency chain, invalid dependency graphs, and crash/restart convergence.
@@ -41,4 +41,4 @@ harbor run -p mcp-replay-recovery --agent oracle --env docker --yes
 harbor run -p mcp-replay-recovery --agent nop --env docker --yes
 ```
 
-The immutable wire-snapshot checkpoint was also under-calibrated. The current refinement adds a durable `PREPARED` state before the first authority acquisition and passes the complete local, static, Docker Oracle, and Docker Nop gates; fresh frontier validation is next. Only genuine, contract-compliant failures will count toward the required repeated frontier and `/cheat` matrix. See `docs/EVALUATION.md` for recorded runs.
+The transactional plan-admission refinement passes the complete local, static, Docker Oracle, and Docker Nop gates. Codex calibration is complete; Claude calibration has one clean semantic failure and will resume for the remaining independent samples when capacity permits. Only genuine, contract-compliant failures count toward the required repeated frontier and `/cheat` matrix. See `docs/EVALUATION.md` for recorded runs.
